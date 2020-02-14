@@ -1,0 +1,6 @@
+name = Foundation Select2
+description = Foundation Select2
+core = 7.x
+version = 7.x-1.0
+project = foundation_select2
+project path = sites/all/modules/third

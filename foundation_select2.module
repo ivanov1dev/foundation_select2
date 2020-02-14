@@ -1,0 +1,155 @@
+<?php
+
+include_once 'include/ajax.inc';
+
+/**
+ * Implements hook_library().
+ */
+function foundation_select2_library() {
+  return [
+    'select2' => [
+      'title' => 'Select2',
+      'website' => 'https://github.com/select2/select2',
+      'version' => foundation_select2_get_library_version(['library path' => libraries_get_path('select2')]),
+      'js' => [
+        libraries_get_path('select2') . '/dist/js/select2.full.min.js' => [
+          'group' => JS_LIBRARY
+        ],
+        drupal_get_path('module', 'foundation_select2') . '/js/foundation_select2.js' => [
+          'group' => JS_LIBRARY
+        ]
+      ],
+      'css' => [
+        libraries_get_path('select2') . '/dist/css/select2.min.css' => [],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_libraries_info().
+ */
+function foundation_select2_libraries_info() {
+  $libraries = [];
+
+  if (($library_path = libraries_get_path('select2'))) {
+    $libraries['select2'] = [
+      'library path' => $library_path,
+      'name' => 'Select2',
+      'vendor url' => 'https://github.com/select2/select2',
+      'download url' => 'https://github.com/select2/select2/releases',
+      'version callback' => 'foundation_select2_get_library_version',
+      'version arguments' => [],
+      'files' => [
+        'js' => [
+          'dist/js/select2.full.min.js',
+        ],
+        'css' => [
+          'dist/css/select2.min.css',
+        ],
+      ],
+      'variants' => [
+        'none' => [
+          'files' => [
+            'js' => [
+              'dist/js/select2.full.js',
+            ],
+            'css' => [
+              'dist/css/select2.css',
+            ],
+          ],
+        ],
+      ],
+      'integration files' => array(
+        'foundation_select2' => array(
+          'js' => array(
+            'js/foundation_select2.js',
+          ),
+        ),
+      ),
+    ];
+  }
+
+  return $libraries;
+}
+
+/**
+ * Library info "version callback".
+ *
+ * @param array $info
+ *   Library info.
+ *
+ * @return string|false
+ *   Version number.
+ */
+function foundation_select2_get_library_version(array $info) {
+  static $versions = [];
+
+  $library_path = $info['library path'];
+
+  if (!$library_path) {
+    return FALSE;
+  }
+
+  if (!isset($version[$library_path])) {
+    $versions[$library_path] = FALSE;
+    if (is_readable("$library_path/package.json")) {
+      $package = drupal_json_decode(file_get_contents("$library_path/package.json"));
+      if ($package && !empty($package['version'])) {
+        $versions[$library_path] = $package['version'];
+      }
+    }
+  }
+
+  return $versions[$library_path];
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function foundation_select2_field_widget_info() {
+  return [
+    'foundation_select2' => [
+      'label' => t('Foundation Select2'),
+      'field types' => [
+        'list_integer',
+        'list_float',
+        'list_text',
+        'node_reference',
+        'taxonomy_term_reference',
+        'user_reference',
+      ],
+      'behaviors' => [
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function foundation_select2_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $mod_instance = $instance;
+  $mod_instance["widget"]["type"] = 'options_select';
+  $element = options_field_widget_form($form, $form_state, $field, $mod_instance, $langcode, $items, $delta, $element);
+  $element['#process'][] = 'foundation_select2_' . $element["#type"] . '_process';
+  return $element;
+}
+
+/**
+ * @param $element
+ * @param $form_state
+ * @param $form
+ * @return mixed
+ */
+function foundation_select2_select_process($element, &$form_state, $form) {
+  $element["#attributes"]['class'][] = 'foundation_select2';
+  $element['#attached']['library'][] = ['foundation_select2', 'select2'];
+
+  if (!empty($element["#multiple"])) {
+    $element["#attributes"]['multiple'] = 'multiple';
+    $element["#name"] = $element["#name"] . '[]';
+  }
+  return $element;
+}
